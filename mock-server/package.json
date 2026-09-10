@@ -1,0 +1,14 @@
+{
+  "name": "car-tracker-mock-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mock backend simulating the IoT device + ML theft-detection backend for the Car Tracker app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "trigger-theft": "node scripts/trigger-theft.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
