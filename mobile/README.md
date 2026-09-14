@@ -1,97 +1,167 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Car Tracker mobile app
 
-# Getting Started
+React Native Android app for viewing the tracked car, receiving simulated
+theft alerts, and following the car's movement while theft mode is active.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## What a physical Android phone needs
 
-## Step 1: Start Metro
+- Android 7.0 or newer (the app's minimum SDK is 24)
+- Developer options and USB debugging enabled
+- A USB data cable and an authorized `adb` connection
+- Internet access on the phone for OpenStreetMap tiles
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+The development computer needs:
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- Node.js 22.11 or newer
+- JDK 17 or newer
+- Android SDK Platform 37, Build Tools 37.0.0, Platform Tools, and NDK
+  27.1.12297006
+- `ANDROID_HOME` configured and `adb` available on `PATH`
 
-```sh
-# Using npm
+## Run on a phone over USB
+
+From `theft-detect-app`:
+
+```bash
+# Terminal 1: install and start the mock API.
+cd mock-server
+npm install
 npm start
-
-# OR using Yarn
-yarn start
 ```
 
-## Step 2: Build and run your app
+Connect and unlock the phone, accept its USB debugging prompt, then verify it
+is visible:
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+```bash
+adb devices -l
 ```
 
-### iOS
+The device must be listed as `device`, not `unauthorized` or `offline`.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+In another terminal:
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
+```bash
+cd mobile
+npm install
+npm run android:device
 ```
 
-Then, and every time you update your native dependencies, run:
+`android:device` forwards port 8081 for Metro and port 3000 for the mock API,
+builds the debug app, installs it on the connected phone, and launches it.
+Keep the USB cable connected while using this local development setup.
 
-```sh
-bundle exec pod install
+If Metro is already running, leave it running and use the same command. If the
+app cannot load JavaScript or reports that the backend is unreachable, restore
+the forwards:
+
+```bash
+adb reverse tcp:8081 tcp:8081
+adb reverse tcp:3000 tcp:3000
+adb reverse --list
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+## Exercise the app
 
-```sh
-# Using npm
-npm run ios
+1. Allow notifications when Android asks.
+2. Confirm that the map and the simulated car appear.
+3. Tap **Simulate theft alert** in the top-right corner.
+4. Confirm the theft notification, red theft-mode banner, and route trail.
+5. Tap **Deactivate theft mode** to return to normal mode.
 
-# OR using Yarn
-yarn ios
+The displayed location is supplied by the mock server; it is not the phone's
+GPS location. No Android location permission is required.
+
+## Build an installable debug APK
+
+The normal device command installs directly through `adb`. To produce an APK
+that can be copied to this phone:
+
+```bash
+cd android
+./gradlew assembleDebug
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+The APK is written to:
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-## Step 3: Modify your app
+This debug APK still expects the mock API at `localhost:3000`, so establish the
+port 3000 reverse before using it. A standalone production APK needs a deployed
+HTTPS backend URL, production signing, authentication, push notifications, and
+a production map tile provider.
 
-Now that you have successfully run the app, let's make changes!
+## Build against the AWS development API
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+The deployed `rapid/origin/dev` infrastructure must have:
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+- `enable_mobile_test_api = true`
+- Kinesis ingest enabled
+- the seeded mobile demo device (currently `car-001`)
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+Obtain the deployed values from the Terraform layer:
 
-## Congratulations! :tada:
+```bash
+cd rapid/infrastructure/aws
+terraform output -raw mobile_api_base_url
+terraform output -raw mobile_demo_device_id
+```
 
-You've successfully run and modified your React Native App. :partying_face:
+Before installing the app, verify the deployed contract:
 
-### Now what?
+```bash
+export RAPID_API_BASE_URL="$(terraform output -raw mobile_api_base_url)"
+export RAPID_DEVICE_ID="$(terraform output -raw mobile_demo_device_id)"
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+curl --fail "$RAPID_API_BASE_URL/devices/$RAPID_DEVICE_ID/status"
+curl --fail "$RAPID_API_BASE_URL/devices/$RAPID_DEVICE_ID/location"
+```
 
-# Troubleshooting
+Connect and unlock one physical phone, accept its USB debugging prompt, and
+check that `adb devices -l` lists it as `device`. If more than one Android
+device is connected, export its serial as `ANDROID_SERIAL`.
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+Start Metro from the mobile directory:
 
-# Learn More
+```bash
+cd theft-detect-app/mobile
+npm start
+```
 
-To learn more about React Native, take a look at the following resources:
+In another terminal, export the same AWS values and install the app:
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+```bash
+cd theft-detect-app/mobile
+export RAPID_API_BASE_URL="https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/dev/v1"
+export RAPID_DEVICE_ID="car-001"
+npm run android:aws-device
+```
+
+The AWS command rejects emulators, forwards only Metro port 8081, injects the
+API URL and device ID into the Android build, installs it, and launches it.
+The phone calls API Gateway directly over HTTPS; do not reverse port 3000.
+
+Send changing GPS readings from the infrastructure project:
+
+```bash
+cd rapid/infrastructure/aws/lambda
+python3 simulate_mobile_telemetry.py \
+  --api-base-url "$RAPID_API_BASE_URL" \
+  --device-id "$RAPID_DEVICE_ID"
+```
+
+Confirm that the marker and theft-mode trail move, then use **Simulate theft
+alert** and **Deactivate theft mode** to test the development-only lifecycle.
+
+The theft notification is generated locally after foreground polling observes
+the AWS status. SNS email is not Android push, so this development build does
+not receive theft alerts while the app is fully closed.
+
+## Useful checks
+
+```bash
+npm test -- --runInBand
+npx tsc --noEmit
+npm run lint
+```

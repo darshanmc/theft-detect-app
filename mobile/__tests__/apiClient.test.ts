@@ -22,6 +22,34 @@ describe('api client', () => {
     expect(status.deviceId).toBe(DEVICE_ID);
   });
 
+  it('fetches location from the device location endpoint', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ deviceId: DEVICE_ID, lat: 1, lng: 2 }),
+    });
+
+    await api.getLocation();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/devices/${DEVICE_ID}/location`,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('POSTs to the theft endpoint', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ deviceId: DEVICE_ID, theftMode: true }),
+    });
+
+    await api.triggerTheft();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/devices/${DEVICE_ID}/theft`,
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
   it('POSTs to the deactivate endpoint', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
@@ -45,5 +73,18 @@ describe('api client', () => {
 
     await expect(api.getStatus()).rejects.toThrow(ApiError);
     await expect(api.getStatus()).rejects.toThrow("unknown device 'nope'");
+  });
+
+  it('preserves infrastructure conflict responses', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: 'device has no current location' }),
+    });
+
+    await expect(api.getStatus()).rejects.toMatchObject({
+      status: 409,
+      message: 'device has no current location',
+    });
   });
 });

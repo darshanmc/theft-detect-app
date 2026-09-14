@@ -1,18 +1,39 @@
 /**
  * Central app configuration.
  *
- * The app talks to the backend over plain HTTP. During development against the
- * mock server:
- *  - the Android emulator reaches the host machine via 10.0.2.2
- *  - a physical device on the same Wi-Fi should use your machine's LAN IP,
- *    e.g. http://192.168.1.42:3000/api
+ * During USB development, `npm run android:device` forwards the phone's port
+ * 3000 to the host machine with adb reverse. This lets a physical Android
+ * device reach the local mock server through localhost without hard-coding a
+ * machine-specific Wi-Fi address.
  *
  * To point the app at the real backend later, change API_BASE_URL only.
  */
-export const API_BASE_URL = 'http://10.0.2.2:3000/api';
+import { NativeModules } from 'react-native';
 
-/** The single tracked device (no auth in v1). */
-export const DEVICE_ID = 'car-001';
+export interface RapidConfig {
+  apiBaseUrl?: string;
+  deviceId?: string;
+}
+
+const rapidConfig = NativeModules.RapidConfig as RapidConfig | undefined;
+
+export function resolveRapidConfig(config?: RapidConfig) {
+  return {
+    apiBaseUrl: config?.apiBaseUrl?.trim() || 'http://localhost:3000/api',
+    deviceId: config?.deviceId?.trim() || 'car-001',
+  };
+}
+
+const resolvedConfig = resolveRapidConfig(rapidConfig);
+
+/**
+ * Pass -PrapidApiBaseUrl=https://.../dev/v1 to the Android Gradle build to
+ * target AWS. The empty default preserves the existing USB/mock workflow.
+ */
+export const API_BASE_URL = resolvedConfig.apiBaseUrl;
+
+/** Pass -PrapidDeviceId=<id> to select a seeded AWS test device. */
+export const DEVICE_ID = resolvedConfig.deviceId;
 
 /** Poll cadence while everything is normal. */
 export const NORMAL_POLL_MS = 60_000;

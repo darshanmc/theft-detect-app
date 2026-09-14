@@ -8,10 +8,10 @@ Asset (car) tracking app with theft mode.
   and the app shows the car moving on a map in near real time, until the user
   marks the alert as a false alarm.
 
-Verified working on the Android emulator: normal mode shows the car on an
-OpenStreetMap map; tapping "Simulate theft alert" (or `npm run trigger-theft`)
-raises a local notification, flips the app into theft mode (red banner, 30s
-polling, live trail), and "Deactivate theft mode" returns it to normal.
+In development, normal mode shows the car on an OpenStreetMap map; tapping
+"Simulate theft alert" (or `npm run trigger-theft`) raises a local
+notification, flips the app into theft mode (red banner, 30s polling, live
+trail), and "Deactivate theft mode" returns it to normal.
 
 ```
 car-tracker/
@@ -31,24 +31,35 @@ car-tracker/
 
 ## Run it
 
-Prereqs: Node, JDK 17+, Android SDK with an emulator or a device with USB
-debugging, and `ANDROID_HOME` set.
+Prereqs: Node 22.11+, JDK 17+, Android SDK Platform 37 with Platform Tools and
+NDK 27.1.12297006, a physical Android 7.0+ device with USB debugging, and
+`ANDROID_HOME` set.
 
 ```bash
 # 1. mock backend (terminal 1)
 cd mock-server && npm install && npm start
 
 # 2. app (terminal 2)
-cd mobile && npm install && adb reverse tcp:8081 tcp:8081 && npm run android
+cd mobile && npm install && npm run android:device
 ```
 
-The Android emulator reaches the mock server via `10.0.2.2` (already the
-default in `mobile/src/config.ts`). For a physical device, set `API_BASE_URL`
-to your computer's LAN IP.
+The device command uses `adb reverse` for Metro on port 8081 and the mock API
+on port 3000. The phone must remain connected over USB while the app uses the
+local backend. See `mobile/README.md` for setup and troubleshooting details.
 
-> Emulator DNS can be flaky. If the map stays blank and logcat shows
-> `Unable to resolve host "tile.openstreetmap.org"`, restart the emulator with
-> `emulator -avd <name> -dns-server 8.8.8.8,1.1.1.1`.
+To use the deployed AWS development API instead, export Terraform's
+`mobile_api_base_url` and `mobile_demo_device_id` outputs and run:
+
+```bash
+cd mobile
+RAPID_API_BASE_URL="https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/dev/v1" \
+RAPID_DEVICE_ID="car-001" \
+npm run android:aws-device
+```
+
+This mode forwards Metro port 8081 only; the phone reaches API Gateway directly
+over HTTPS. The complete deployment checks and telemetry simulator command are
+documented in `mobile/README.md`.
 
 ## Using the app
 

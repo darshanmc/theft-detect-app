@@ -58,6 +58,12 @@ react {
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
 def enableProguardInReleaseBuilds = false
+def rapidApiBaseUrl = (project.findProperty("rapidApiBaseUrl") ?: "").toString()
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+def rapidDeviceId = (project.findProperty("rapidDeviceId") ?: "car-001").toString()
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -84,6 +90,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        buildConfigField "String", "RAPID_API_BASE_URL", "\"${rapidApiBaseUrl}\""
+        buildConfigField "String", "RAPID_DEVICE_ID", "\"${rapidDeviceId}\""
+    }
+    buildFeatures {
+        buildConfig true
     }
     signingConfigs {
         debug {
