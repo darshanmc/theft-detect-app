@@ -14,3 +14,12 @@ export interface DeviceStatus extends DeviceLocation {
   theftMode: boolean;
   batteryPct: number;
 }
+
+/** Response from registering an FCM push notification token. */
+export interface PushTokenRegistrationResponse {
+  ok: boolean;
+  deviceId: string;
+  registered: boolean;
+  endpointArn?: string;
+}
+

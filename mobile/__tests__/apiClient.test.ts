@@ -50,6 +50,25 @@ describe('api client', () => {
     );
   });
 
+  it('POSTs to the push-token endpoint to register device token', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, deviceId: DEVICE_ID, registered: true }),
+    });
+
+    const res = await api.registerPushToken('sample-fcm-token-123', 'android');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/devices/${DEVICE_ID}/push-token`,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'sample-fcm-token-123', platform: 'android' }),
+      }),
+    );
+    expect(res.ok).toBe(true);
+    expect(res.registered).toBe(true);
+  });
+
   it('POSTs to the deactivate endpoint', async () => {
     mockFetch.mockResolvedValue({
       ok: true,

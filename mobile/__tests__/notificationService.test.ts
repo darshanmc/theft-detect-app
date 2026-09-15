@@ -1,0 +1,107 @@
+import notifee, { AndroidImportance } from '@notifee/react-native';
+import { createNotificationService, THEFT_CHANNEL_ID } from '../src/services/notificationService';
+import { api } from '../src/api/client';
+import { trackingService } from '../src/services/trackingService';
+import { useTrackingStore } from '../src/state/trackingStore';
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn().mockResolvedValue(null),
+  getItem: jest.fn().mockResolvedValue(null),
+  removeItem: jest.fn().mockResolvedValue(null),
+}));
+
+jest.mock('@notifee/react-native', () => ({
+  __esModule: true,
+  default: {
+    requestPermission: jest.fn().mockResolvedValue({}),
+    createChannel: jest.fn().mockResolvedValue('theft-alerts'),
+    displayNotification: jest.fn().mockResolvedValue('notif-id-1'),
+  },
+  AndroidImportance: {
+    HIGH: 4,
+  },
+}));
+
+jest.mock('../src/api/client', () => ({
+  api: {
+    getStatus: jest.fn().mockResolvedValue({
+      deviceId: 'car-001',
+      lat: 37.77,
+      lng: -122.41,
+      theftMode: false,
+    }),
+    getLocation: jest.fn().mockResolvedValue({
+      deviceId: 'car-001',
+      lat: 37.78,
+      lng: -122.42,
+    }),
+    registerPushToken: jest.fn().mockResolvedValue({ ok: true, registered: true }),
+    triggerTheft: jest.fn().mockResolvedValue({ theftMode: true }),
+    deactivateTheft: jest.fn().mockResolvedValue({ theftMode: false }),
+  },
+}));
+
+describe('notificationService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useTrackingStore.setState({
+      mode: 'normal',
+      lastLocation: null,
+      trail: [],
+      lastError: null,
+      hydrated: false,
+    });
+  });
+
+  it('creates theft notification channel during initialization', async () => {
+    const service = createNotificationService();
+    await service.init();
+
+    expect(notifee.requestPermission).toHaveBeenCalled();
+    expect(notifee.createChannel).toHaveBeenCalledWith({
+      id: THEFT_CHANNEL_ID,
+      name: 'Theft alerts',
+      importance: AndroidImportance.HIGH,
+      vibration: true,
+    });
+  });
+
+  it('registers device push token via api client', async () => {
+    const service = createNotificationService();
+    await service.registerDeviceToken('token-abc-123');
+
+    expect(api.registerPushToken).toHaveBeenCalledWith('token-abc-123', 'android');
+  });
+
+  it('displays high-priority push notification for theft alert', async () => {
+    const service = createNotificationService();
+    await service.displayPushAlert('Theft Alert!', 'Vehicle moving unexpectedly');
+
+    expect(notifee.displayNotification).toHaveBeenCalledWith({
+      title: 'Theft Alert!',
+      body: 'Vehicle moving unexpectedly',
+      android: {
+        channelId: THEFT_CHANNEL_ID,
+        importance: AndroidImportance.HIGH,
+        pressAction: { id: 'default' },
+      },
+    });
+  });
+
+  it('enables theft mode automatically on handling theft alert in trackingService', async () => {
+    expect(useTrackingStore.getState().mode).toBe('normal');
+
+    await trackingService.handleTheftAlert('Theft Alert!', 'Car is moving');
+
+    expect(useTrackingStore.getState().mode).toBe('theft');
+    expect(notifee.displayNotification).toHaveBeenCalledWith({
+      title: 'Theft Alert!',
+      body: 'Car is moving',
+      android: {
+        channelId: THEFT_CHANNEL_ID,
+        importance: AndroidImportance.HIGH,
+        pressAction: { id: 'default' },
+      },
+    });
+  });
+});

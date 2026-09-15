@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "845216266204",
+    "project_id": "rapid-1fa37",
+    "storage_bucket": "rapid-1fa37.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:845216266204:android:8f2320fd4a42b8c7274119",
+        "android_client_info": {
+          "package_name": "com.cartracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXwnGjd-RxCgVzi7QKYt8G5LAMDP5IHUA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

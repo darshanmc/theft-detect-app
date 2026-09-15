@@ -109,6 +109,21 @@ app.post('/api/devices/:id/theft', (req, res) => {
   res.json(statusPayload());
 });
 
+/** Register device push notification token (mock). */
+app.post('/api/devices/:id/push-token', (req, res) => {
+  const d = findDevice(req, res);
+  if (!d) return;
+  const { token, platform = 'android' } = req.body || {};
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ error: 'push token is required' });
+  }
+  d.pushToken = token;
+  d.pushPlatform = platform;
+  d.pushTokenUpdatedAt = new Date().toISOString();
+  console.log(`[mock] registered push token for ${d.id}: ${token.slice(0, 16)}...`);
+  res.json({ ok: true, deviceId: d.id, registered: true });
+});
+
 /** False alarm — deactivate theft mode. Idempotent. */
 app.post('/api/devices/:id/theft/deactivate', (req, res) => {
   if (!findDevice(req, res)) return;

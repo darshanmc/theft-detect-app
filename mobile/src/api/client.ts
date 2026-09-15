@@ -1,5 +1,5 @@
 import { API_BASE_URL, DEVICE_ID } from '../config';
-import type { DeviceLocation, DeviceStatus } from './types';
+import type { DeviceLocation, DeviceStatus, PushTokenRegistrationResponse } from './types';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -39,6 +39,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   getStatus: () => request<DeviceStatus>(`/devices/${DEVICE_ID}/status`),
   getLocation: () => request<DeviceLocation>(`/devices/${DEVICE_ID}/location`),
+  registerPushToken: (token: string, platform: string = 'android') =>
+    request<PushTokenRegistrationResponse>(`/devices/${DEVICE_ID}/push-token`, {
+      method: 'POST',
+      body: JSON.stringify({ token, platform }),
+    }),
   triggerTheft: () =>
     request<DeviceStatus>(`/devices/${DEVICE_ID}/theft`, { method: 'POST' }),
   deactivateTheft: () =>

@@ -3,14 +3,19 @@ import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import MapScreen from './src/screens/MapScreen';
 import { notificationService } from './src/services/notificationService';
+import { trackingService } from './src/services/trackingService';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
   useEffect(() => {
-    // Notification permission + channel (simulated-alert implementation in v1).
+    // Notification permission + channel + push token registration + theft listener.
     notificationService
-      .init()
+      .init(() => {
+        trackingService
+          .handleTheftAlert()
+          .catch((err) => console.warn('handleTheftAlert failed', err));
+      })
       .catch((err) => console.warn('notification init failed', err));
   }, []);
 

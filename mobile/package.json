@@ -5,6 +5,7 @@
   "scripts": {
     "android": "react-native run-android",
     "android:device": "adb reverse tcp:8081 tcp:8081 && adb reverse tcp:3000 tcp:3000 && react-native run-android --active-arch-only",
+    "android:aws": "adb reverse tcp:8081 tcp:8081 && react-native run-android --active-arch-only --extra-params \"-PrapidApiBaseUrl=https://ykzx35pedb.execute-api.us-east-1.amazonaws.com/dev/v1 -PrapidDeviceId=car-001\"",
     "android:aws-device": "bash scripts/run-android-aws.sh",
     "ios": "react-native run-ios",
     "lint": "eslint .",

@@ -83,6 +83,7 @@ Base URL: `http://localhost:3000`
 |---|---|---|
 | GET | `/api/devices/:id/status` | location + `theftMode` flag (app polls in normal mode) |
 | GET | `/api/devices/:id/location` | latest location (app polls every 30s in theft mode) |
+| POST | `/api/devices/:id/push-token` | register device push token (FCM / SNS) |
 | POST | `/api/devices/:id/theft` | simulate ML verdict → activates theft mode |
 | POST | `/api/devices/:id/theft/deactivate` | false alarm → back to normal |
 

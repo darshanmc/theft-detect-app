@@ -97,6 +97,24 @@ export const trackingService = {
     scheduleNext();
   },
 
+  /** Handles incoming push theft alert (foreground or background). */
+  async handleTheftAlert(title?: string, body?: string): Promise<void> {
+    if (store().mode !== 'theft') {
+      store().setMode('theft');
+      await AsyncStorage.setItem(MODE_STORAGE_KEY, 'theft').catch(() => undefined);
+    }
+    if (title || body) {
+      await notificationService
+        .displayPushAlert(
+          title || 'Possible theft detected',
+          body || 'Your car may be stolen. Tap to track it live.',
+        )
+        .catch(() => undefined);
+    }
+    await tick();
+    scheduleNext();
+  },
+
   /** Dev helper: ask the mock backend to flag the car as stolen. */
   async simulateTheftAlert(): Promise<void> {
     await api.triggerTheft();
