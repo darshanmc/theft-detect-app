@@ -19,7 +19,9 @@ class RapidConfigModule(
       )
 
   @ReactMethod
-  fun invalidate() = Unit
+  override fun invalidate() {
+    super.invalidate()
+  }
 
   companion object {
     const val NAME = "RapidConfig"
