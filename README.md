@@ -4,13 +4,13 @@ Asset (car) tracking app with theft mode.
 
 - **IoT device** reports the car's location (hourly in production).
 - **ML backend** decides whether the car is stolen and raises an alert.
-- On a theft alert the app enters **theft mode**: the device reports every **30s**
-  and the app shows the car moving on a map in near real time, until the user
+- On a theft alert the app enters **theft mode**: it polls every **5s**
+  and shows the car moving on a map in near real time, until the user
   marks the alert as a false alarm.
 
 In development, normal mode shows the car on an OpenStreetMap map; tapping
 "Simulate theft alert" (or `npm run trigger-theft`) raises a local
-notification, flips the app into theft mode (red banner, 30s polling, live
+notification, flips the app into theft mode (red banner, 5s polling, live
 trail), and "Deactivate theft mode" returns it to normal.
 
 ```
@@ -25,7 +25,7 @@ car-tracker/
 |---|---|---|
 | Backend | local mock server | change `API_BASE_URL` in `mobile/src/config.ts` |
 | Theft alert | simulated (poll + dev button → local notification) | implement the `NotificationService` interface with FCM |
-| Live updates | REST polling every 30s (foreground) | WebSocket or FCM data messages |
+| Live updates | REST polling every 5s in theft mode (foreground) | WebSocket or FCM data messages |
 | Maps | OpenStreetMap via `@maplibre/maplibre-react-native` (no API key) | proper tile provider for production |
 | Auth | none, hardcoded device `car-001` | real login + device binding |
 
@@ -69,7 +69,7 @@ documented in `mobile/README.md`.
    - in the app: the dev-only **"Simulate theft alert"** button (top right), or
    - from a terminal: `cd mock-server && npm run trigger-theft` (the app picks
      it up on its next status poll, within 60s).
-3. **Theft mode** — red banner, local notification, location polled every 30s,
+3. **Theft mode** — red banner, local notification, location polled every 5s,
    breadcrumb trail drawn on the map. The mode survives app restarts
    (AsyncStorage).
 4. **False alarm** — tap **"Deactivate theft mode"** at the bottom and confirm;
@@ -82,7 +82,7 @@ Base URL: `http://localhost:3000`
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/devices/:id/status` | location + `theftMode` flag (app polls in normal mode) |
-| GET | `/api/devices/:id/location` | latest location (app polls every 30s in theft mode) |
+| GET | `/api/devices/:id/location` | latest location (app polls every 5s in theft mode) |
 | POST | `/api/devices/:id/push-token` | register device push token (FCM / SNS) |
 | POST | `/api/devices/:id/theft` | simulate ML verdict → activates theft mode |
 | POST | `/api/devices/:id/theft/deactivate` | false alarm → back to normal |
@@ -102,7 +102,7 @@ cd mobile && npx tsc --noEmit  # typecheck
 
 - The app must be **open** to receive a theft alert (simulated alerts have no
   real push channel). Real FCM removes this.
-- 30s polling pauses while the app is backgrounded; it refreshes on resume.
+- 5s polling pauses while the app is backgrounded; it refreshes on resume.
 - OSM's public tile server is fine for dev/demo only (tile usage policy).
 - No authentication; a single hardcoded device ID.
 - New Architecture is currently disabled (`android/gradle.properties`

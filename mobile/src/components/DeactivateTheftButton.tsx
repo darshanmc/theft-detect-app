@@ -26,7 +26,7 @@ export function DeactivateTheftButton() {
   const onPress = () => {
     Alert.alert(
       'Deactivate theft mode?',
-      'Only do this if the alert was a false alarm. Live 30s tracking will stop.',
+      'Only do this if the alert was a false alarm. Live 5s tracking will stop.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Deactivate', style: 'destructive', onPress: deactivate },

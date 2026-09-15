@@ -10,7 +10,7 @@ import { notificationService } from './notificationService';
  * Polls the backend and drives the tracking store.
  *
  *  - normal mode: polls /status every NORMAL_POLL_MS (location + theft flag)
- *  - theft mode:  polls /location every THEFT_POLL_MS (30s live tracking)
+ *  - theft mode:  polls /location every THEFT_POLL_MS (5s live tracking)
  *
  * The mode is persisted, so killing and reopening the app keeps tracking the car.
  */

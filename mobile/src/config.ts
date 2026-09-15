@@ -38,5 +38,5 @@ export const DEVICE_ID = resolvedConfig.deviceId;
 /** Poll cadence while everything is normal. */
 export const NORMAL_POLL_MS = 60_000;
 
-/** Poll cadence while theft mode is active (device reports every 30s). */
-export const THEFT_POLL_MS = 30_000;
+/** Poll cadence while theft mode is active. */
+export const THEFT_POLL_MS = 5_000;

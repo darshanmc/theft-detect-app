@@ -4,7 +4,7 @@
  * Simulates:
  *  - an IoT device reporting status on a configurable cadence (real world: 1 hour)
  *  - the ML backend flagging the car as stolen  (POST /api/devices/:id/theft)
- *  - theft mode, where the device reports every 30s (real world cadence)
+ *  - theft mode, where the demo device reports every 5s by default
  *
  * Defaults are sped up (30s normal / 5s theft) so demos and testing are usable.
  * Override with env vars: NORMAL_TICK_MS / THEFT_TICK_MS (e.g. 3600000 / 30000 for real cadence).
@@ -92,7 +92,7 @@ app.get('/api/devices/:id/status', (req, res) => {
   if (findDevice(req, res)) res.json(statusPayload());
 });
 
-/** Latest device location. App polls this every 30s in theft mode. */
+/** Latest device location. App polls this every 5s in theft mode. */
 app.get('/api/devices/:id/location', (req, res) => {
   if (findDevice(req, res)) res.json(locationPayload());
 });

@@ -1,4 +1,4 @@
-import { resolveRapidConfig } from '../src/config';
+import { NORMAL_POLL_MS, THEFT_POLL_MS, resolveRapidConfig } from '../src/config';
 
 describe('runtime configuration', () => {
   it('uses the local USB mock defaults when native values are absent', () => {
@@ -25,5 +25,10 @@ describe('runtime configuration', () => {
       apiBaseUrl: 'http://localhost:3000/api',
       deviceId: 'car-001',
     });
+  });
+
+  it('keeps normal polling at 60s and theft polling at 5s', () => {
+    expect(NORMAL_POLL_MS).toBe(60_000);
+    expect(THEFT_POLL_MS).toBe(5_000);
   });
 });

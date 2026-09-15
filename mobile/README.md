@@ -155,7 +155,7 @@ Confirm that the marker and theft-mode trail move, then use **Simulate theft
 alert** and **Deactivate theft mode** to test the development-only lifecycle.
 
 ### Push Notifications & Theft Mode via AWS SNS (FCM)
-When SNS notifications and mobile push are enabled (`enable_mobile_push = true` with FCM credentials), the mobile app registers its push token via `POST /v1/devices/{device_id}/push-token`. On a `CRITICAL` theft detection verdict, the backend Lambda publishes a multi-format JSON payload to the SNS Topic (`theft-alerts`) which fans out to email and FCM push endpoints. Upon receiving the `THEFT_ALERT` push notification (foreground or background), the app automatically enters theft mode, displays a high-priority Notifee alert, and begins tracking the vehicle at the 30-second cadence.
+When SNS notifications and mobile push are enabled (`enable_mobile_push = true` with FCM credentials), the mobile app registers its push token via `POST /v1/devices/{device_id}/push-token`. On a `CRITICAL` theft detection verdict, the backend Lambda publishes a multi-format JSON payload to the SNS Topic (`theft-alerts`) which fans out to email and FCM push endpoints. Upon receiving the `THEFT_ALERT` push notification (foreground or background), the app automatically enters theft mode, displays a high-priority Notifee alert, and begins tracking the vehicle at the 5-second cadence.
 
 ## Useful checks
 
