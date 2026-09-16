@@ -1,4 +1,13 @@
 import notifee, { AndroidCategory, AndroidImportance } from '@notifee/react-native';
+import {
+  AuthorizationStatus,
+  getMessaging,
+  getToken,
+  onMessage,
+  onTokenRefresh,
+  requestPermission,
+} from '@react-native-firebase/messaging';
+import type { RemoteMessage } from '@react-native-firebase/messaging';
 import { api } from '../api/client';
 import type { DeviceStatus } from '../api/types';
 
@@ -24,7 +33,7 @@ export interface NotificationService {
   reRegisterToken(deviceId?: string): Promise<void>;
 }
 
-export const THEFT_CHANNEL_ID = 'theft-alerts';
+export const THEFT_CHANNEL_ID = 'theft-alerts-v2';
 
 const FALLBACK_ALERT_TITLE = 'Possible theft detected';
 const FALLBACK_ALERT_BODY = 'Your car may be stolen. Tap to track it live.';
@@ -113,50 +122,41 @@ export function createNotificationService(): NotificationService {
         vibration: true,
       });
 
-      // Initialize Firebase messaging when available
-      try {
-        const messagingModule = require('@react-native-firebase/messaging');
-        const messaging = messagingModule?.default || messagingModule;
-        if (typeof messaging === 'function') {
-          const msgInstance = messaging();
-          const authStatus = await msgInstance.requestPermission?.();
-          const enabled =
-            authStatus === 1 || // AuthorizationStatus.AUTHORIZED
-            authStatus === 2;   // AuthorizationStatus.PROVISIONAL
-
-          if (enabled !== false) {
-            const token = await msgInstance.getToken?.();
-            if (token) {
-              await registerDeviceToken(token);
-            }
-
-            tokenRefreshUnsubscribe?.();
-            tokenRefreshUnsubscribe = msgInstance.onTokenRefresh?.((newToken: string) => {
-              registerDeviceToken(newToken);
-            });
-
-            pushUnsubscribe?.();
-            pushUnsubscribe = msgInstance.onMessage?.(async (remoteMessage: any) => {
-              const data = remoteMessage?.data || {};
-              if (data.type === 'THEFT_ALERT' || data.theftMode === 'true') {
-                const { title, body } = getTheftAlertContent(remoteMessage);
-                await displayPushAlert(title, body);
-                onTheftAlertReceived?.();
-              }
-            });
-          }
-        }
-      } catch {
-        // Firebase messaging optional / not bundled in test env
+      const msgInstance = getMessaging();
+      const authStatus = await requestPermission(msgInstance);
+      const enabled =
+        authStatus === AuthorizationStatus.AUTHORIZED ||
+        authStatus === AuthorizationStatus.PROVISIONAL;
+      if (!enabled) {
+        throw new Error('Push notification permission was not granted.');
       }
+
+      const token = await getToken(msgInstance);
+      if (!token) {
+        throw new Error('Firebase Messaging did not provide a device token.');
+      }
+      await registerDeviceToken(token);
+
+      tokenRefreshUnsubscribe?.();
+      tokenRefreshUnsubscribe = onTokenRefresh(msgInstance, (newToken: string) => {
+        registerDeviceToken(newToken);
+      });
+
+      pushUnsubscribe?.();
+      pushUnsubscribe = onMessage(msgInstance, async (remoteMessage: RemoteMessage) => {
+        const data = remoteMessage.data || {};
+        if (data.type === 'THEFT_ALERT' || data.theftMode === 'true') {
+          const { title, body } = getTheftAlertContent(remoteMessage);
+          await displayPushAlert(title, body);
+          onTheftAlertReceived?.();
+        }
+      });
     },
 
     async notifyTheftAlert(status) {
       await displayPushAlert(
-        'Possible theft detected',
-        `Your car may be stolen — last seen moving at ${Math.round(
-          status.speedKmh,
-        )} km/h. Tap to track it live.`,
+        status.alertTitle || `THEFT ALERT — ${status.deviceId} — theft detected.`,
+        status.alertBody || 'Why: theft mode was activated. Open the app to track it live.',
       );
     },
 

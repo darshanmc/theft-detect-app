@@ -15,7 +15,12 @@ export interface RapidConfig {
   deviceId?: string;
 }
 
-const rapidConfig = NativeModules.RapidConfig as RapidConfig | undefined;
+interface RapidConfigNativeModule extends RapidConfig {
+  canUseFullScreenIntent?: () => Promise<boolean>;
+  openFullScreenIntentSettings?: () => Promise<void>;
+}
+
+const rapidConfig = NativeModules.RapidConfig as RapidConfigNativeModule | undefined;
 
 export function resolveRapidConfig(config?: RapidConfig) {
   return {
@@ -35,6 +40,17 @@ export const API_BASE_URL = resolvedConfig.apiBaseUrl;
 /** Optional default device ID provided by build or empty. */
 export const DEFAULT_DEVICE_ID = resolvedConfig.deviceId;
 export const DEVICE_ID = resolvedConfig.deviceId;
+
+export async function canUseFullScreenIntent(): Promise<boolean> {
+  return rapidConfig?.canUseFullScreenIntent ? rapidConfig.canUseFullScreenIntent() : true;
+}
+
+export async function openFullScreenIntentSettings(): Promise<void> {
+  if (!rapidConfig?.openFullScreenIntentSettings) {
+    throw new Error('Full-screen notification settings are unavailable on this device.');
+  }
+  await rapidConfig.openFullScreenIntentSettings();
+}
 
 /** Storage key for persisted device ID. */
 export const DEVICE_STORAGE_KEY = 'car-tracker.device_id';

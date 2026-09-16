@@ -1,6 +1,12 @@
 package com.cartracker
 
+import android.app.NotificationManager
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import com.facebook.react.bridge.NativeModule
+import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -21,6 +27,34 @@ class RapidConfigModule(
   @ReactMethod
   override fun invalidate() {
     super.invalidate()
+  }
+
+  @ReactMethod
+  fun canUseFullScreenIntent(promise: Promise) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      promise.resolve(true)
+      return
+    }
+
+    val notificationManager =
+        reactApplicationContext.getSystemService(NotificationManager::class.java)
+    promise.resolve(notificationManager.canUseFullScreenIntent())
+  }
+
+  @ReactMethod
+  fun openFullScreenIntentSettings(promise: Promise) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      promise.resolve(null)
+      return
+    }
+
+    val intent =
+        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+          data = Uri.parse("package:${reactApplicationContext.packageName}")
+          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+    reactApplicationContext.startActivity(intent)
+    promise.resolve(null)
   }
 
   companion object {

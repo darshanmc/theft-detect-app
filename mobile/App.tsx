@@ -1,9 +1,13 @@
 import React, { useEffect } from 'react';
-import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
+import { Alert, StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import MapScreen from './src/screens/MapScreen';
 import { notificationService } from './src/services/notificationService';
 import { trackingService } from './src/services/trackingService';
+import {
+  canUseFullScreenIntent,
+  openFullScreenIntentSettings,
+} from './src/config';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -17,6 +21,28 @@ function App() {
           .catch((err) => console.warn('handleTheftAlert failed', err));
       })
       .catch((err) => console.warn('notification init failed', err));
+
+    canUseFullScreenIntent()
+      .then((enabled) => {
+        if (!enabled) {
+          Alert.alert(
+            'Enable full-screen theft alerts',
+            'Android must allow full-screen notifications for this app to open live tracking when a theft alert arrives on the lock screen.',
+            [
+              { text: 'Not now', style: 'cancel' },
+              {
+                text: 'Open settings',
+                onPress: () => {
+                  openFullScreenIntentSettings().catch((err) =>
+                    console.warn('Could not open full-screen notification settings', err),
+                  );
+                },
+              },
+            ],
+          );
+        }
+      })
+      .catch((err) => console.warn('Could not check full-screen notification access', err));
   }, []);
 
   return (

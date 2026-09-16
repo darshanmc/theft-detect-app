@@ -191,7 +191,9 @@ Confirm that the marker and theft-mode trail move, then use **Simulate theft
 alert** and **Deactivate theft mode** to test the development-only lifecycle.
 
 ### Push Notifications & Theft Mode via AWS SNS (FCM)
-When SNS notifications and mobile push are enabled (`enable_mobile_push = true` with FCM credentials), the mobile app registers its push token via `POST /v1/devices/{device_id}/push-token`. On a `CRITICAL` theft detection verdict, the backend Lambda publishes a multi-format JSON payload to the SNS Topic (`theft-alerts`) which fans out to email and FCM push endpoints. Upon receiving the `THEFT_ALERT` push notification (foreground or background), the app automatically enters theft mode, displays a high-priority Notifee alert, and begins tracking the vehicle at the 5-second cadence.
+Before building an AWS-connected Android APK, download the Firebase Android client configuration for package `com.cartracker` and save it as `android/app/google-services.json`. This file is intentionally ignored by Git; it is not the Firebase service-account credential used by Terraform.
+
+When SNS notifications and mobile push are enabled (`enable_mobile_push = true` with FCM credentials), the mobile app registers its push token via `POST /v1/devices/{device_id}/push-token`. On a `CRITICAL` theft detection verdict, the backend Lambda publishes a data-only payload to the SNS Topic (`theft-alerts`) which fans out to FCM push endpoints. The app renders the alert as `THEFT ALERT — <device> — <confidence>% ...` followed by `Why: <reason>`, enters theft mode, and begins tracking at the 5-second cadence. Android shows this as heads-up while unlocked; to launch live tracking over the lock screen, enable **Full-screen notifications** for CarTracker in Android Special app access.
 
 ## Useful checks
 

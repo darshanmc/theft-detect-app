@@ -30,6 +30,15 @@ jest.mock('@notifee/react-native', () => ({
   },
 }));
 
+jest.mock('@react-native-firebase/messaging', () => ({
+  AuthorizationStatus: { AUTHORIZED: 1, PROVISIONAL: 2 },
+  getMessaging: jest.fn(),
+  getToken: jest.fn().mockResolvedValue('fcm-token-123'),
+  onTokenRefresh: jest.fn().mockReturnValue(jest.fn()),
+  onMessage: jest.fn().mockReturnValue(jest.fn()),
+  requestPermission: jest.fn().mockResolvedValue(1),
+}));
+
 jest.mock('../src/api/client', () => ({
   api: {
     getStatus: jest.fn().mockResolvedValue({
@@ -72,6 +81,7 @@ describe('notificationService', () => {
       importance: AndroidImportance.HIGH,
       vibration: true,
     });
+    expect(api.registerPushToken).toHaveBeenCalledWith('fcm-token-123', undefined, 'android');
   });
 
   it('registers device push token via api client', async () => {
@@ -156,5 +166,28 @@ describe('notificationService', () => {
         pressAction: { id: 'default' },
       },
     });
+  });
+
+  it('uses the persisted rich content when polling observes theft mode', async () => {
+    useTrackingStore.setState({ deviceId: 'car-001' });
+    (api.getStatus as jest.Mock).mockResolvedValueOnce({
+      deviceId: 'car-001',
+      lat: 37.77,
+      lng: -122.41,
+      theftMode: true,
+      batteryPct: 90,
+      alertTitle: 'THEFT ALERT — car-001 — 95% confidence your vehicle may have been stolen.',
+      alertBody: "Why: your key wasn't found nearby",
+    });
+
+    await trackingService.start();
+
+    expect(notifee.displayNotification).toHaveBeenCalledWith(
+      buildTheftAlertNotification({
+        title: 'THEFT ALERT — car-001 — 95% confidence your vehicle may have been stolen.',
+        body: "Why: your key wasn't found nearby",
+      }),
+    );
+    trackingService.stop();
   });
 });
