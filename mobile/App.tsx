@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Alert, StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import MapScreen from './src/screens/MapScreen';
+import { NavBar } from './src/components/NavBar';
 import { notificationService } from './src/services/notificationService';
 import { trackingService } from './src/services/trackingService';
 import {
@@ -49,6 +50,7 @@ function App() {
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <SafeAreaView style={styles.container} edges={['top']}>
+        <NavBar />
         <MapScreen />
       </SafeAreaView>
     </SafeAreaProvider>
