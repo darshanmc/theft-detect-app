@@ -1,32 +1,31 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, spacing } from '../theme';
 
 export function NavBar() {
   return (
     <View style={styles.navBar}>
-      <Text style={styles.title}>RecovR RAPID</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        RecovR RAPID
+      </Text>
+      <Text style={styles.subtitle}>Vehicle tracking</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   navBar: {
-    height: 52,
-    backgroundColor: '#1565C0',
+    minHeight: 64,
+    backgroundColor: colors.canvas,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    zIndex: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   title: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: colors.text,
+    fontSize: 20,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  subtitle: { color: colors.muted, fontSize: 13, marginTop: 2 },
 });

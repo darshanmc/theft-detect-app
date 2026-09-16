@@ -8,10 +8,16 @@ Asset (car) tracking app with theft mode.
   and shows the car moving on a map in near real time, until the user
   marks the alert as a false alarm.
 
-In development, normal mode shows the car on an OpenStreetMap map; tapping
-"Simulate theft alert" (or `npm run trigger-theft`) raises a local
-notification, flips the app into theft mode (red banner, 5s polling, live
-trail), and "Deactivate theft mode" returns it to normal.
+Normal mode pairs an OpenStreetMap map with a vehicle card showing the selected
+tracker, reading age, full reading date/time, and last reported speed. A
+heading-aware car marker replaces the old text label. Panning pauses map
+following; the circular recenter control resumes it without resetting zoom.
+
+In development, expand **Developer tools** in the vehicle card and tap
+**Simulate theft alert** (or use `npm run trigger-theft`) to raise a local
+notification and enter theft mode (red banner, 5s polling, breadcrumb
+trail). **This is a false alarm** asks for confirmation before returning to
+normal mode.
 
 ```
 car-tracker/
@@ -24,10 +30,10 @@ car-tracker/
 | Topic | v1 choice | Upgrade path |
 |---|---|---|
 | Backend | local mock server | change `API_BASE_URL` in `mobile/src/config.ts` |
-| Theft alert | simulated (poll + dev button → local notification) | implement the `NotificationService` interface with FCM |
+| Theft alert | simulated alerts; AWS SNS/FCM push when configured | see mobile setup for Firebase configuration |
 | Live updates | REST polling every 5s in theft mode (foreground) | WebSocket or FCM data messages |
 | Maps | OpenStreetMap via `@maplibre/maplibre-react-native` (no API key) | proper tile provider for production |
-| Auth | none, hardcoded device `car-001` | real login + device binding |
+| Auth | none; manually selected tracker ID, optionally seeded by build config | real login + device binding |
 
 ## Run it
 
@@ -63,17 +69,26 @@ documented in `mobile/README.md`.
 
 ## Using the app
 
-1. **Normal mode** — map shows the car's last known location; the app polls
-   `/status` every 60s.
-2. **Trigger a theft alert** (v1, simulated):
-   - in the app: the dev-only **"Simulate theft alert"** button (top right), or
+1. **Connect a tracker** — enter its device ID and connect after verification.
+   Use **Change device** in the vehicle card to switch trackers. Demo presets
+   and the verification bypass are available only in development builds.
+2. **Normal mode** — map shows the car's last known location; the app polls
+   `/status` every 60s. Drag to explore; use the recenter control to follow the
+   car again. Reading age comes from the device timestamp, not the last API
+   request: normal tracking does not mean the car is safe or the reading is fresh.
+3. **Trigger a theft alert** (development):
+   - in the app: **Developer tools > Simulate theft alert** in the vehicle card, or
    - from a terminal: `cd mock-server && npm run trigger-theft` (the app picks
      it up on its next status poll, within 60s).
-3. **Theft mode** — red banner, local notification, location polled every 5s,
+4. **Theft mode** — red alert card, local notification, location polled every 5s,
    breadcrumb trail drawn on the map. The mode survives app restarts
    (AsyncStorage).
-4. **False alarm** — tap **"Deactivate theft mode"** at the bottom and confirm;
+5. **False alarm** — tap **This is a false alarm** in the vehicle card and confirm;
    the app tells the backend and returns to normal mode.
+
+The map appears only after a location is received. Connection failures show an
+explicit warning and keep any last-known location visible while requests retry
+automatically. The vehicle card scrolls when space or larger text requires it.
 
 ## Mock backend API
 
@@ -100,11 +115,12 @@ cd mobile && npx tsc --noEmit  # typecheck
 
 ## Known limitations (v1)
 
-- The app must be **open** to receive a theft alert (simulated alerts have no
-  real push channel). Real FCM removes this.
-- 5s polling pauses while the app is backgrounded; it refreshes on resume.
+- Simulated alerts require the app's polling loop; receiving real push alerts
+  requires the Firebase/AWS configuration described in `mobile/README.md`.
+- High-frequency tracking is intended for foreground use; background execution
+  is OS-dependent. The app requests a new reading on resume.
 - OSM's public tile server is fine for dev/demo only (tile usage policy).
-- No authentication; a single hardcoded device ID.
+- No authentication or ownership verification; only one selected tracker at a time.
 - New Architecture is currently disabled (`android/gradle.properties`
   `newArchEnabled=false`) for map stability on this emulator; re-enable and
   re-verify before shipping.

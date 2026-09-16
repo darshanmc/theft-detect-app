@@ -1,116 +1,177 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { DeviceLocation } from '../api/types';
-import { NORMAL_POLL_MS, THEFT_POLL_MS } from '../config';
+import { useLocationAge } from '../hooks/useLocationAge';
 import { useTrackingStore, type TrackingMode } from '../state/trackingStore';
+import { colors, radius, spacing } from '../theme';
+import { DeactivateTheftButton } from './DeactivateTheftButton';
+import { DevMenu } from './DevMenu';
+import { TheftModeBanner } from './TheftModeBanner';
 
 interface Props {
   mode: TrackingMode;
   lastLocation: DeviceLocation | null;
   lastError: string | null;
+  hydrated: boolean;
 }
 
-/** Small info card showing mode, poll cadence, device ID, last update and connectivity. */
-export function StatusCard({ mode, lastLocation, lastError }: Props) {
-  const deviceId = useTrackingStore((s) => s.deviceId);
-  const setDeviceModalVisible = useTrackingStore((s) => s.setDeviceModalVisible);
-  const pollSecs = (mode === 'theft' ? THEFT_POLL_MS : NORMAL_POLL_MS) / 1000;
+export function StatusCard({ mode, lastLocation, lastError, hydrated }: Props) {
+  const deviceId = useTrackingStore(s => s.deviceId);
+  const setDeviceModalVisible = useTrackingStore(s => s.setDeviceModalVisible);
+  const { age, absoluteTime } = useLocationAge(lastLocation?.updatedAt);
+  const speed = lastLocation?.speedKmh;
+  const scroll = useRef<React.ElementRef<typeof ScrollView>>(null);
+
+  useEffect(() => {
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  }, [mode, deviceId]);
 
   return (
-    <View
-      style={[styles.card, mode === 'theft' && styles.cardAboveButton]}
-      pointerEvents="auto"
+    <ScrollView
+      ref={scroll}
+      style={styles.card}
+      contentContainerStyle={styles.content}
+      alwaysBounceVertical={false}
     >
-      <View style={styles.headerRow}>
-        <Text style={styles.deviceText} numberOfLines={1}>
-          Device: <Text style={styles.deviceIdValue}>{deviceId || 'None'}</Text>
-        </Text>
+      {mode === 'theft' && <TheftModeBanner />}
+      <View style={styles.identity}>
+        <View style={styles.vehicle}>
+          <Text style={styles.title} accessibilityRole="header">
+            My vehicle
+          </Text>
+          <Text style={styles.device}>
+            {deviceId || 'No tracker connected'}
+          </Text>
+        </View>
         <Pressable
-          style={styles.switchButton}
+          accessibilityRole="button"
+          accessibilityLabel={
+            deviceId ? 'Change vehicle tracker' : 'Connect vehicle tracker'
+          }
+          accessibilityState={{ disabled: !hydrated }}
+          disabled={!hydrated}
+          style={({ pressed }) => [
+            styles.switchButton,
+            pressed && styles.pressed,
+          ]}
           onPress={() => setDeviceModalVisible(true)}
-          hitSlop={8}
         >
-          <Text style={styles.switchText}>Switch</Text>
+          <Text style={styles.switchText}>
+            {deviceId ? 'Change device' : 'Connect tracker'}
+          </Text>
         </Pressable>
       </View>
 
-      <Text style={styles.row}>
-        Mode:{' '}
-        <Text style={[styles.value, mode === 'theft' && styles.theft]}>
-          {mode === 'theft' ? 'THEFT' : 'Normal'}
-        </Text>
-        {'  ·  polling every '}
-        {pollSecs}s
-      </Text>
-      <Text style={styles.row}>
-        Last update:{' '}
-        <Text style={styles.value}>
-          {lastLocation ? new Date(lastLocation.updatedAt).toLocaleTimeString() : '—'}
-        </Text>
-      </Text>
-      {lastLocation != null && (
-        <Text style={styles.row}>
-          Speed: <Text style={styles.value}>{Math.round(lastLocation.speedKmh)} km/h</Text>
-        </Text>
+      {mode === 'normal' && (
+        <View style={styles.status}>
+          <View style={styles.statusDot} />
+          <Text style={styles.statusText}>
+            {deviceId ? 'Normal tracking' : 'Ready to connect'}
+          </Text>
+        </View>
       )}
-      {lastError != null && (
-        <Text style={styles.error}>
-          Connection issue: {lastError} — showing last known location
+      <View style={styles.reading}>
+        <Text style={styles.readingTitle}>
+          {lastLocation ? age : 'No location received yet'}
         </Text>
+        {absoluteTime && <Text style={styles.detail}>{absoluteTime}</Text>}
+        {lastLocation && (
+          <View style={styles.speedRow}>
+            <Text style={styles.detail}>Last reported speed</Text>
+            <Text style={styles.speed}>
+              {speed !== undefined && Number.isFinite(speed) && speed >= 0
+                ? `${Math.round(speed)} km/h`
+                : 'Unavailable'}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {lastError !== null && (
+        <View style={styles.warning} accessibilityLiveRegion="polite">
+          <Text style={styles.warningTitle}>Connection interrupted</Text>
+          <Text style={styles.warningText}>
+            {lastLocation
+              ? 'Showing the last known location. New readings are currently unavailable.'
+              : 'We cannot get a location right now. Check your connection.'}
+            {' Requests will retry automatically.'}
+          </Text>
+        </View>
       )}
-    </View>
+      {mode === 'theft' && <DeactivateTheftButton />}
+      <DevMenu />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    position: 'absolute',
-    left: 8,
-    bottom: 8,
-    maxWidth: '80%',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 8,
-    padding: 10,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    flexGrow: 0,
+    flexShrink: 1,
+    maxHeight: '55%',
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.card,
+    borderTopRightRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginHorizontal: spacing.sm,
   },
-  /** In theft mode the deactivate button occupies the bottom — sit above it. */
-  cardAboveButton: { bottom: 96 },
-  headerRow: {
+  content: { padding: spacing.md, gap: spacing.sm },
+  identity: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    marginBottom: 4,
-    paddingBottom: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#cfd8dc',
+    gap: spacing.sm,
   },
-  deviceText: {
-    fontSize: 12,
-    color: '#455a64',
-    flex: 1,
-    marginRight: 8,
-  },
-  deviceIdValue: {
-    fontWeight: '700',
-    color: '#0284c7',
-  },
+  vehicle: { gap: spacing.xs, flexGrow: 1, flexShrink: 1, minWidth: 140 },
+  title: { fontSize: 22, fontWeight: '700', color: colors.text },
+  device: { fontSize: 14, color: colors.muted },
   switchButton: {
-    backgroundColor: '#e0f2fe',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    flexShrink: 1,
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primarySoft,
+  },
+  switchText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
+  pressed: { opacity: 0.75 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  statusDot: {
+    width: 8,
+    height: 8,
     borderRadius: 4,
+    backgroundColor: colors.primary,
   },
-  switchText: {
-    fontSize: 11,
-    color: '#0284c7',
-    fontWeight: '700',
+  statusText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
+    flexShrink: 1,
   },
-  row: { fontSize: 12, color: '#455a64' },
-  value: { fontWeight: '700', color: '#263238' },
-  theft: { color: '#c62828' },
-  error: { fontSize: 11, color: '#c62828', marginTop: 4 },
+  reading: {
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    paddingTop: spacing.md,
+    gap: spacing.xs,
+  },
+  readingTitle: { fontSize: 16, color: colors.text, fontWeight: '600' },
+  detail: { fontSize: 14, color: colors.muted, flexShrink: 1 },
+  speedRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  speed: { fontSize: 18, fontWeight: '700', color: colors.text },
+  warning: {
+    padding: spacing.md,
+    backgroundColor: colors.warningSoft,
+    borderRadius: radius.sm,
+    gap: spacing.xs,
+  },
+  warningTitle: { color: colors.warning, fontSize: 15, fontWeight: '700' },
+  warningText: { color: colors.warning, fontSize: 14 },
 });

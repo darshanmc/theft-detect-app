@@ -1,36 +1,64 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import { trackingService } from '../services/trackingService';
+import { colors, radius, spacing } from '../theme';
 
-/**
- * Button pinned to the bottom of the screen while theft mode is active.
- * Lets the user mark the alert as a false alarm and return to normal mode.
- */
 export function DeactivateTheftButton() {
   const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
+  const confirming = useRef(false);
 
   const deactivate = async () => {
+    if (pending.current) return;
+    pending.current = true;
+    confirming.current = false;
     setBusy(true);
     try {
       await trackingService.deactivateTheft();
     } catch (err) {
+      console.warn('Could not deactivate theft mode', err);
       Alert.alert(
         'Could not deactivate',
-        err instanceof Error ? err.message : String(err),
+        'The alert is still active. Check your connection and try again.',
       );
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   };
 
   const onPress = () => {
+    if (pending.current || confirming.current) return;
+    confirming.current = true;
     Alert.alert(
-      'Deactivate theft mode?',
-      'Only do this if the alert was a false alarm. Live 5s tracking will stop.',
+      'Is this a false alarm?',
+      'Only confirm if this alert was a false alarm. High-frequency tracking will stop.',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Deactivate', style: 'destructive', onPress: deactivate },
+        {
+          text: 'Keep tracking',
+          style: 'cancel',
+          onPress: () => {
+            confirming.current = false;
+          },
+        },
+        {
+          text: 'Confirm false alarm',
+          style: 'destructive',
+          onPress: deactivate,
+        },
       ],
+      {
+        cancelable: true,
+        onDismiss: () => {
+          confirming.current = false;
+        },
+      },
     );
   };
 
@@ -39,11 +67,16 @@ export function DeactivateTheftButton() {
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
       onPress={onPress}
       disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={
+        busy ? 'Confirming false alarm' : 'This is a false alarm'
+      }
+      accessibilityState={{ disabled: busy, busy }}
     >
       {busy ? (
         <ActivityIndicator color="#fff" />
       ) : (
-        <Text style={styles.label}>Deactivate theft mode (false alarm)</Text>
+        <Text style={styles.label}>This is a false alarm</Text>
       )}
     </Pressable>
   );
@@ -51,17 +84,17 @@ export function DeactivateTheftButton() {
 
 const styles = StyleSheet.create({
   button: {
-    position: 'absolute',
-    bottom: 24,
-    left: 24,
-    right: 24,
-    backgroundColor: '#37474f',
-    borderRadius: 12,
-    paddingVertical: 16,
+    minHeight: 48,
+    backgroundColor: colors.text,
+    borderRadius: radius.sm,
+    padding: spacing.md,
     alignItems: 'center',
-    elevation: 4,
-    zIndex: 10,
   },
   pressed: { opacity: 0.85 },
-  label: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  label: {
+    color: colors.surface,
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
 });
