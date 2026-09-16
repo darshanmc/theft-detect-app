@@ -6,6 +6,7 @@ if [[ -z "${RAPID_API_BASE_URL:-}" ]]; then
   exit 2
 fi
 
+RAPID_API_BASE_URL="${RAPID_API_BASE_URL%/}"
 RAPID_DEVICE_EXTRA=""
 if [[ -n "${RAPID_DEVICE_ID:-}" ]]; then
   RAPID_DEVICE_EXTRA="-PrapidDeviceId=$RAPID_DEVICE_ID"
@@ -45,14 +46,12 @@ else
   export ANDROID_SERIAL="$serial"
 fi
 
-if [[ "$serial" == emulator-* ]]; then
-  echo "The AWS device command requires a physical phone, not an emulator." >&2
-  exit 2
-fi
-
-adb -s "$serial" reverse tcp:8081 tcp:8081
+echo "Building and installing standalone Release APK to device $serial..."
+echo "Target backend: $RAPID_API_BASE_URL"
+echo "Note: Metro is NOT required for this build."
 
 exec npx react-native run-android \
+  --mode=release \
   --active-arch-only \
   --device "$serial" \
   --extra-params "-PrapidApiBaseUrl=$RAPID_API_BASE_URL $RAPID_DEVICE_EXTRA"

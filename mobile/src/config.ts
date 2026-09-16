@@ -20,7 +20,7 @@ const rapidConfig = NativeModules.RapidConfig as RapidConfig | undefined;
 export function resolveRapidConfig(config?: RapidConfig) {
   return {
     apiBaseUrl: config?.apiBaseUrl?.trim() || 'http://localhost:3000/api',
-    deviceId: config?.deviceId?.trim() || 'car-001',
+    deviceId: config?.deviceId?.trim() || '',
   };
 }
 
@@ -32,8 +32,12 @@ const resolvedConfig = resolveRapidConfig(rapidConfig);
  */
 export const API_BASE_URL = resolvedConfig.apiBaseUrl;
 
-/** Pass -PrapidDeviceId=<id> to select a seeded AWS test device. */
+/** Optional default device ID provided by build or empty. */
+export const DEFAULT_DEVICE_ID = resolvedConfig.deviceId;
 export const DEVICE_ID = resolvedConfig.deviceId;
+
+/** Storage key for persisted device ID. */
+export const DEVICE_STORAGE_KEY = 'car-tracker.device_id';
 
 /** Poll cadence while everything is normal. */
 export const NORMAL_POLL_MS = 60_000;

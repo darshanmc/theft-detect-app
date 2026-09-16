@@ -68,9 +68,18 @@ describe('notificationService', () => {
 
   it('registers device push token via api client', async () => {
     const service = createNotificationService();
-    await service.registerDeviceToken('token-abc-123');
+    await service.registerDeviceToken('token-abc-123', 'car-001');
 
-    expect(api.registerPushToken).toHaveBeenCalledWith('token-abc-123', 'android');
+    expect(api.registerPushToken).toHaveBeenCalledWith('token-abc-123', 'car-001', 'android');
+  });
+
+  it('re-registers cached token for a new device ID', async () => {
+    const service = createNotificationService();
+    await service.registerDeviceToken('token-abc-123', 'car-001');
+    expect(api.registerPushToken).toHaveBeenCalledWith('token-abc-123', 'car-001', 'android');
+
+    await service.reRegisterToken('KRG0523-59730797');
+    expect(api.registerPushToken).toHaveBeenCalledWith('token-abc-123', 'KRG0523-59730797', 'android');
   });
 
   it('displays high-priority push notification for theft alert', async () => {

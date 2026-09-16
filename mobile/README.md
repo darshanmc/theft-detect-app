@@ -73,7 +73,7 @@ GPS location. No Android location permission is required.
 
 ## Build an installable debug APK
 
-The normal device command installs directly through `adb`. To produce an APK
+The normal device command installs directly through `adb`. To produce a debug APK
 that can be copied to this phone:
 
 ```bash
@@ -87,10 +87,46 @@ The APK is written to:
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-This debug APK still expects the mock API at `localhost:3000`, so establish the
-port 3000 reverse before using it. A standalone production APK needs a deployed
-HTTPS backend URL, production signing, authentication, push notifications, and
-a production map tile provider.
+This debug APK still expects Metro running on port 8081 (or an active USB `adb reverse tcp:8081 tcp:8081`) and the mock API at `localhost:3000`.
+
+---
+
+## Build and install a standalone APK (No Metro required)
+
+Release builds bundle JavaScript and assets **at compile time**, compiling them into optimized Hermes bytecode inside the APK. The resulting app runs independently on the device without needing Metro or an active computer connection.
+
+### Option A: Build and install directly to connected phone (AWS Backend)
+
+```bash
+cd theft-detect-app/mobile
+export RAPID_API_BASE_URL="https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/dev/v1"
+export RAPID_DEVICE_ID="car-001"
+
+npm run android:aws-release
+```
+
+### Option B: Build standalone Release APK file via Gradle
+
+```bash
+cd theft-detect-app/mobile/android
+
+./gradlew assembleRelease \
+  -PrapidApiBaseUrl="https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/dev/v1" \
+  -PrapidDeviceId="car-001"
+```
+
+The standalone APK is generated at:
+```text
+android/app/build/outputs/apk/release/app-release.apk
+```
+
+Install it manually on any connected device via ADB:
+```bash
+adb install -r app/build/outputs/apk/release/app-release.apk
+```
+*Once installed, you can disconnect the USB cable completely. The app will launch and communicate directly with AWS API Gateway over the internet.*
+
+---
 
 ## Build against the AWS development API
 

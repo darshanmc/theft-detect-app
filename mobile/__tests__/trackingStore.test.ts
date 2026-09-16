@@ -13,6 +13,8 @@ const loc = (lat: number, lng: number): DeviceLocation => ({
 beforeEach(() =>
   useTrackingStore.setState({
     mode: 'normal',
+    deviceId: 'car-001',
+    deviceModalVisible: false,
     lastLocation: null,
     trail: [],
     lastError: null,
@@ -21,6 +23,22 @@ beforeEach(() =>
 );
 
 describe('trackingStore', () => {
+  it('updates deviceId and resets state for new device', () => {
+    useTrackingStore.getState().setMode('theft');
+    useTrackingStore.getState().setLocation(loc(1, 1));
+
+    expect(useTrackingStore.getState().deviceId).toBe('car-001');
+    expect(useTrackingStore.getState().mode).toBe('theft');
+
+    useTrackingStore.getState().resetForDevice('KRG0523-59730797');
+
+    const s = useTrackingStore.getState();
+    expect(s.deviceId).toBe('KRG0523-59730797');
+    expect(s.mode).toBe('normal');
+    expect(s.lastLocation).toBeNull();
+    expect(s.trail).toHaveLength(0);
+  });
+
   it('updates last location without building a trail in normal mode', () => {
     useTrackingStore.getState().setLocation(loc(1, 1));
     useTrackingStore.getState().setLocation(loc(2, 2));

@@ -10,6 +10,7 @@ import {
 } from '@maplibre/maplibre-react-native';
 import { DeactivateTheftButton } from '../components/DeactivateTheftButton';
 import { DevMenu } from '../components/DevMenu';
+import { DeviceSelectionModal } from '../components/DeviceSelectionModal';
 import { StatusCard } from '../components/StatusCard';
 import { TheftModeBanner } from '../components/TheftModeBanner';
 import { useTracking } from '../hooks/useTracking';
@@ -35,7 +36,7 @@ const OSM_STYLE = JSON.stringify({
 const FALLBACK_CENTER: [number, number] = [-122.4194, 37.7749]; // [lng, lat]
 
 export default function MapScreen() {
-  const { mode, lastLocation, trail, lastError, hydrated } = useTracking();
+  const { mode, lastLocation, trail, lastError, hydrated, deviceId } = useTracking();
   const cameraRef = useRef<CameraRef>(null);
 
   const center: [number, number] = lastLocation
@@ -77,7 +78,7 @@ export default function MapScreen() {
         )}
       </Map>
 
-      {(!hydrated || !lastLocation) && (
+      {(!hydrated || (!lastLocation && Boolean(deviceId))) && (
         <View style={styles.loadingOverlay} pointerEvents="none">
           <ActivityIndicator size="large" color="#37474f" />
           <Text style={styles.loadingText}>
@@ -90,6 +91,7 @@ export default function MapScreen() {
       <StatusCard mode={mode} lastLocation={lastLocation} lastError={lastError} />
       {mode === 'theft' && <DeactivateTheftButton />}
       <DevMenu />
+      <DeviceSelectionModal />
     </View>
   );
 }

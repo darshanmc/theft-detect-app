@@ -18,8 +18,10 @@ export interface NotificationService {
   notifyTheftAlert(status: DeviceStatus): Promise<void>;
   /** Display a high-priority push alert directly. */
   displayPushAlert(title: string, body: string): Promise<void>;
-  /** Register push token directly with the backend. */
-  registerDeviceToken(token: string): Promise<void>;
+  /** Register push token directly with the backend for a given or active device ID. */
+  registerDeviceToken(token: string, deviceId?: string): Promise<void>;
+  /** Re-register the cached token when active device ID changes. */
+  reRegisterToken(deviceId?: string): Promise<void>;
 }
 
 export const THEFT_CHANNEL_ID = 'theft-alerts';
@@ -27,6 +29,7 @@ export const THEFT_CHANNEL_ID = 'theft-alerts';
 export function createNotificationService(): NotificationService {
   let pushUnsubscribe: (() => void) | null = null;
   let tokenRefreshUnsubscribe: (() => void) | null = null;
+  let cachedToken: string | null = null;
 
   const displayPushAlert = async (title: string, body: string) => {
     await notifee.displayNotification({
@@ -40,11 +43,18 @@ export function createNotificationService(): NotificationService {
     });
   };
 
-  const registerDeviceToken = async (token: string) => {
+  const registerDeviceToken = async (token: string, deviceId?: string) => {
     try {
-      await api.registerPushToken(token, 'android');
+      cachedToken = token;
+      await api.registerPushToken(token, deviceId, 'android');
     } catch (err) {
       console.warn('Failed to register push token with backend:', err);
+    }
+  };
+
+  const reRegisterToken = async (deviceId?: string) => {
+    if (cachedToken) {
+      await registerDeviceToken(cachedToken, deviceId);
     }
   };
 
@@ -110,6 +120,7 @@ export function createNotificationService(): NotificationService {
 
     displayPushAlert,
     registerDeviceToken,
+    reRegisterToken,
   };
 }
 

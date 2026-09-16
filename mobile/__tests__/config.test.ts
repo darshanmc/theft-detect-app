@@ -4,7 +4,7 @@ describe('runtime configuration', () => {
   it('uses the local USB mock defaults when native values are absent', () => {
     expect(resolveRapidConfig()).toEqual({
       apiBaseUrl: 'http://localhost:3000/api',
-      deviceId: 'car-001',
+      deviceId: '',
     });
   });
 
@@ -23,7 +23,7 @@ describe('runtime configuration', () => {
   it('falls back when Android provides empty build values', () => {
     expect(resolveRapidConfig({ apiBaseUrl: ' ', deviceId: '' })).toEqual({
       apiBaseUrl: 'http://localhost:3000/api',
-      deviceId: 'car-001',
+      deviceId: '',
     });
   });
 

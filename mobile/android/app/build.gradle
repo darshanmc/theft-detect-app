@@ -61,7 +61,7 @@ def enableProguardInReleaseBuilds = false
 def rapidApiBaseUrl = (project.findProperty("rapidApiBaseUrl") ?: "").toString()
     .replace("\\", "\\\\")
     .replace("\"", "\\\"")
-def rapidDeviceId = (project.findProperty("rapidDeviceId") ?: "car-001").toString()
+def rapidDeviceId = (project.findProperty("rapidDeviceId") ?: "").toString()
     .replace("\\", "\\\\")
     .replace("\"", "\\\"")
 

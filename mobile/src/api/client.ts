@@ -1,4 +1,5 @@
-import { API_BASE_URL, DEVICE_ID } from '../config';
+import { API_BASE_URL, DEFAULT_DEVICE_ID } from '../config';
+import { useTrackingStore } from '../state/trackingStore';
 import type { DeviceLocation, DeviceStatus, PushTokenRegistrationResponse } from './types';
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -11,6 +12,14 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+export function resolveDeviceId(deviceId?: string): string {
+  const id = deviceId?.trim() || useTrackingStore.getState().deviceId?.trim() || DEFAULT_DEVICE_ID;
+  if (!id) {
+    throw new ApiError(400, 'No device ID configured. Please enter a device ID.');
+  }
+  return encodeURIComponent(id);
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -33,19 +42,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /**
- * Typed client for the tracking backend. Swap the implementation (or just
- * API_BASE_URL in config.ts) to go from the mock server to the real backend.
+ * Typed client for the tracking backend.
  */
 export const api = {
-  getStatus: () => request<DeviceStatus>(`/devices/${DEVICE_ID}/status`),
-  getLocation: () => request<DeviceLocation>(`/devices/${DEVICE_ID}/location`),
-  registerPushToken: (token: string, platform: string = 'android') =>
-    request<PushTokenRegistrationResponse>(`/devices/${DEVICE_ID}/push-token`, {
+  getStatus: (deviceId?: string) =>
+    request<DeviceStatus>(`/devices/${resolveDeviceId(deviceId)}/status`),
+  getLocation: (deviceId?: string) =>
+    request<DeviceLocation>(`/devices/${resolveDeviceId(deviceId)}/location`),
+  registerPushToken: (token: string, deviceId?: string, platform: string = 'android') =>
+    request<PushTokenRegistrationResponse>(`/devices/${resolveDeviceId(deviceId)}/push-token`, {
       method: 'POST',
       body: JSON.stringify({ token, platform }),
     }),
-  triggerTheft: () =>
-    request<DeviceStatus>(`/devices/${DEVICE_ID}/theft`, { method: 'POST' }),
-  deactivateTheft: () =>
-    request<DeviceStatus>(`/devices/${DEVICE_ID}/theft/deactivate`, { method: 'POST' }),
+  triggerTheft: (deviceId?: string) =>
+    request<DeviceStatus>(`/devices/${resolveDeviceId(deviceId)}/theft`, { method: 'POST' }),
+  deactivateTheft: (deviceId?: string) =>
+    request<DeviceStatus>(`/devices/${resolveDeviceId(deviceId)}/theft/deactivate`, { method: 'POST' }),
 };
