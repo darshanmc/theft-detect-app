@@ -1,4 +1,4 @@
-import notifee, { AndroidImportance } from '@notifee/react-native';
+import notifee, { AndroidCategory, AndroidImportance } from '@notifee/react-native';
 import { api } from '../api/client';
 import type { DeviceStatus } from '../api/types';
 
@@ -26,21 +26,65 @@ export interface NotificationService {
 
 export const THEFT_CHANNEL_ID = 'theft-alerts';
 
+const FALLBACK_ALERT_TITLE = 'Possible theft detected';
+const FALLBACK_ALERT_BODY = 'Your car may be stolen. Tap to track it live.';
+
+interface RemoteTheftMessage {
+  data?: Record<string, unknown>;
+  notification?: {
+    title?: unknown;
+    body?: unknown;
+  };
+}
+
+export interface TheftAlertContent {
+  title: string;
+  body: string;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+export function getTheftAlertContent(message: RemoteTheftMessage): TheftAlertContent {
+  const data = message.data || {};
+  const notification = message.notification || {};
+  const plainReason = stringValue(data.plainReason);
+
+  return {
+    title:
+      stringValue(data.alertTitle) ||
+      stringValue(notification.title) ||
+      FALLBACK_ALERT_TITLE,
+    body:
+      stringValue(data.alertBody) ||
+      (plainReason ? `Why: ${plainReason}` : undefined) ||
+      stringValue(notification.body) ||
+      FALLBACK_ALERT_BODY,
+  };
+}
+
+export function buildTheftAlertNotification(content: TheftAlertContent) {
+  return {
+    title: content.title,
+    body: content.body,
+    android: {
+      channelId: THEFT_CHANNEL_ID,
+      category: AndroidCategory.ALARM,
+      importance: AndroidImportance.HIGH,
+      fullScreenAction: { id: 'default', launchActivity: 'default' },
+      pressAction: { id: 'default' },
+    },
+  };
+}
+
 export function createNotificationService(): NotificationService {
   let pushUnsubscribe: (() => void) | null = null;
   let tokenRefreshUnsubscribe: (() => void) | null = null;
   let cachedToken: string | null = null;
 
   const displayPushAlert = async (title: string, body: string) => {
-    await notifee.displayNotification({
-      title,
-      body,
-      android: {
-        channelId: THEFT_CHANNEL_ID,
-        importance: AndroidImportance.HIGH,
-        pressAction: { id: 'default' }, // tapping opens the app
-      },
-    });
+    await notifee.displayNotification(buildTheftAlertNotification({ title, body }));
   };
 
   const registerDeviceToken = async (token: string, deviceId?: string) => {
@@ -94,10 +138,8 @@ export function createNotificationService(): NotificationService {
             pushUnsubscribe?.();
             pushUnsubscribe = msgInstance.onMessage?.(async (remoteMessage: any) => {
               const data = remoteMessage?.data || {};
-              const notification = remoteMessage?.notification || {};
               if (data.type === 'THEFT_ALERT' || data.theftMode === 'true') {
-                const title = notification.title || 'Possible theft detected';
-                const body = notification.body || 'Your car may be stolen. Tap to track it live.';
+                const { title, body } = getTheftAlertContent(remoteMessage);
                 await displayPushAlert(title, body);
                 onTheftAlertReceived?.();
               }

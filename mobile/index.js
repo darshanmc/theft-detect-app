@@ -4,9 +4,10 @@
 
 import { AppRegistry } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import notifee, { AndroidImportance } from '@notifee/react-native';
+import notifee from '@notifee/react-native';
 import App from './App';
 import { name as appName } from './app.json';
+import { buildTheftAlertNotification, getTheftAlertContent } from './src/services/notificationService';
 
 // Register background push message handler for theft detection alerts
 try {
@@ -15,18 +16,9 @@ try {
   if (typeof messaging === 'function') {
     messaging().setBackgroundMessageHandler?.(async (remoteMessage) => {
       const data = remoteMessage?.data || {};
-      const notification = remoteMessage?.notification || {};
       if (data.type === 'THEFT_ALERT' || data.theftMode === 'true') {
         await AsyncStorage.setItem('car-tracker.mode', 'theft').catch(() => undefined);
-        await notifee.displayNotification({
-          title: notification.title || 'Possible theft detected',
-          body: notification.body || 'Your car may be stolen. Tap to track it live.',
-          android: {
-            channelId: 'theft-alerts',
-            importance: AndroidImportance.HIGH,
-            pressAction: { id: 'default' },
-          },
-        });
+        await notifee.displayNotification(buildTheftAlertNotification(getTheftAlertContent(remoteMessage)));
       }
     });
   }

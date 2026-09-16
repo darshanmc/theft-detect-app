@@ -1,5 +1,10 @@
-import notifee, { AndroidImportance } from '@notifee/react-native';
-import { createNotificationService, THEFT_CHANNEL_ID } from '../src/services/notificationService';
+import notifee, { AndroidCategory, AndroidImportance } from '@notifee/react-native';
+import {
+  buildTheftAlertNotification,
+  createNotificationService,
+  getTheftAlertContent,
+  THEFT_CHANNEL_ID,
+} from '../src/services/notificationService';
 import { api } from '../src/api/client';
 import { trackingService } from '../src/services/trackingService';
 import { useTrackingStore } from '../src/state/trackingStore';
@@ -19,6 +24,9 @@ jest.mock('@notifee/react-native', () => ({
   },
   AndroidImportance: {
     HIGH: 4,
+  },
+  AndroidCategory: {
+    ALARM: 'alarm',
   },
 }));
 
@@ -91,7 +99,9 @@ describe('notificationService', () => {
       body: 'Vehicle moving unexpectedly',
       android: {
         channelId: THEFT_CHANNEL_ID,
+        category: AndroidCategory.ALARM,
         importance: AndroidImportance.HIGH,
+        fullScreenAction: { id: 'default', launchActivity: 'default' },
         pressAction: { id: 'default' },
       },
     });
@@ -108,7 +118,41 @@ describe('notificationService', () => {
       body: 'Car is moving',
       android: {
         channelId: THEFT_CHANNEL_ID,
+        category: AndroidCategory.ALARM,
         importance: AndroidImportance.HIGH,
+        fullScreenAction: { id: 'default', launchActivity: 'default' },
+        pressAction: { id: 'default' },
+      },
+    });
+  });
+
+  it('uses structured theft payload content before legacy notification fields', () => {
+    expect(
+      getTheftAlertContent({
+        data: {
+          alertTitle: 'THEFT ALERT — KRG3496-66841242 — 100% confidence your vehicle may have been stolen.',
+          plainReason: "your key wasn't found nearby; it's in an unusual location",
+        },
+        notification: {
+          title: 'Legacy title',
+          body: 'Legacy body',
+        },
+      }),
+    ).toEqual({
+      title: 'THEFT ALERT — KRG3496-66841242 — 100% confidence your vehicle may have been stolen.',
+      body: "Why: your key wasn't found nearby; it's in an unusual location",
+    });
+  });
+
+  it('creates a full-screen Android notification', () => {
+    expect(buildTheftAlertNotification({ title: 'Title', body: 'Body' })).toEqual({
+      title: 'Title',
+      body: 'Body',
+      android: {
+        channelId: THEFT_CHANNEL_ID,
+        category: AndroidCategory.ALARM,
+        importance: AndroidImportance.HIGH,
+        fullScreenAction: { id: 'default', launchActivity: 'default' },
         pressAction: { id: 'default' },
       },
     });
